@@ -1,0 +1,17 @@
+# Environment Variables
+backend/.env
+backend/env.development
+backend/env.production
+frontend/widget/.env
+frontend/widget/.env.production
+backend/src/tests/email/widgetReservationTest.js
+**/node_modules
+**/.DS_Store
+**/dist
+**/.vite
+# すべての.envファイルを無視
+**/.env
+**/.env.*
+# シークレットキーを含む可能性のあるファイル
+**/secrets.js
+**/credentials.*
