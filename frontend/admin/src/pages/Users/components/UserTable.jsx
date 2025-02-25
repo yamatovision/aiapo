@@ -84,6 +84,7 @@ const UserTable = ({
         <Table>
           <TableHead>
             <TableRow>
+            <TableCell>名前</TableCell>
               <TableCell>メールアドレス</TableCell>
               <TableCell>クライアントID</TableCell>
               <TableCell>ステータス</TableCell>
@@ -96,6 +97,8 @@ const UserTable = ({
           <TableBody>
             {users.map((user) => (
               <TableRow key={user._id}>
+                      <TableCell>{user.name}</TableCell>
+
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.clientId}</TableCell>
                 <TableCell>

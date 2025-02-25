@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography, Paper, Button } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { useAuth } from '../../auth/useAuth';
 import { Navigate } from 'react-router-dom';
 import UserTable from './components/UserTable';
 import UserFilter from './components/UserFilter';
+import UserForm from './components/UserForm';
 import axios from 'axios';
 
 const UserList = () => {
@@ -11,6 +13,7 @@ const UserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -56,10 +59,36 @@ const UserList = () => {
     }
   };
 
+  // 新規ユーザー作成処理
+  const handleCreateUser = async (userData) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/users`,
+        userData
+      );
+
+      if (response.data.success) {
+        fetchUsers(); // 一覧を再取得
+        setShowNewUserForm(false);
+        return { success: true };
+      }
+      return { 
+        success: false, 
+        message: response.data.message || '作成に失敗しました' 
+      };
+    } catch (error) {
+      console.error('ユーザー作成エラー:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || '作成中にエラーが発生しました'
+      };
+    }
+  };
+
   // フィルター変更時の処理
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 })); // ページをリセット
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // ページネーション変更時の処理
@@ -76,7 +105,7 @@ const UserList = () => {
       );
 
       if (response.data.success) {
-        fetchUsers(); // 一覧を再取得
+        fetchUsers();
         return { success: true };
       }
       return { success: false, message: '更新に失敗しました' };
@@ -98,7 +127,7 @@ const UserList = () => {
       );
 
       if (response.data.success) {
-        fetchUsers(); // 一覧を再取得
+        fetchUsers();
         return { success: true };
       }
       return { success: false, message: '権限の更新に失敗しました' };
@@ -117,10 +146,20 @@ const UserList = () => {
 
   return (
     <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        ユーザー管理
-      </Typography>
-      
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4">
+          ユーザー管理
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => setShowNewUserForm(true)}
+        >
+          新規作成
+        </Button>
+      </Box>
+
       <Paper sx={{ mb: 3, p: 2 }}>
         <UserFilter
           filters={filters}
@@ -141,6 +180,13 @@ const UserList = () => {
           onRoleChange={handleRoleChange}
         />
       </Paper>
+
+      <UserForm
+        open={showNewUserForm}
+        onClose={() => setShowNewUserForm(false)}
+        onSubmit={handleCreateUser}
+        isNew={true}
+      />
     </Box>
   );
 };

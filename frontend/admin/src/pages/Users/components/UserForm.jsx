@@ -1,3 +1,4 @@
+// UserForm.jsx の修正
 import { useState } from 'react';
 import {
   Dialog,
@@ -8,14 +9,17 @@ import {
   TextField,
   MenuItem,
   Grid,
-  Alert
+  Alert,
+  Typography
 } from '@mui/material';
 
-const UserForm = ({ user, open, onClose, onSubmit }) => {
+const UserForm = ({ user = {}, open, onClose, onSubmit, isNew = false }) => {
   const [formData, setFormData] = useState({
-    email: user.email,
-    clientId: user.clientId,
-    status: user.status
+    name: user.name || '',     // 追加
+    email: user.email || '',
+    clientId: user.clientId || '',
+    status: user.status || 'active',
+    role: user.role || 'admin'
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -40,67 +44,85 @@ const UserForm = ({ user, open, onClose, onSubmit }) => {
       }
       onClose();
     } catch (error) {
-      setError('更新中にエラーが発生しました');
+      setError(isNew ? '作成中にエラーが発生しました' : '更新中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          ユーザー情報編集
-        </DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <form onSubmit={handleSubmit}>
+      <DialogTitle>
+        {isNew ? 'ユーザー新規作成' : 'ユーザー情報編集'}
+      </DialogTitle>
 
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            {error && (
+      <DialogContent>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          {/* 名前フィールドを追加 */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="名前"
+              value={formData.name}
+              onChange={handleChange('name')}
+              required
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="メールアドレス"
+              value={formData.email}
+              onChange={handleChange('email')}
+              required
+              type="email"
+            />
+          </Grid>
+            {!isNew && (
               <Grid item xs={12}>
-                <Alert severity="error">{error}</Alert>
+                <TextField
+                  fullWidth
+                  label="クライアントID"
+                  value={formData.clientId}
+                  onChange={handleChange('clientId')}
+                  required
+                  helperText="CLで始まる一意の識別子"
+                />
               </Grid>
             )}
 
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="メールアドレス"
-                value={formData.email}
-                onChange={handleChange('email')}
-                required
-                type="email"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="クライアントID"
-                value={formData.clientId}
-                onChange={handleChange('clientId')}
-                required
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
                 select
-                label="ステータス"
-                value={formData.status}
-                onChange={handleChange('status')}
+                label="権限"
+                value={formData.role}
+                onChange={handleChange('role')}
                 required
               >
-                <MenuItem value="active">有効</MenuItem>
-                <MenuItem value="inactive">無効</MenuItem>
-                <MenuItem value="withdrawn">退会済み</MenuItem>
+                <MenuItem value="admin">管理者</MenuItem>
+                <MenuItem value="superadmin">スーパー管理者</MenuItem>
               </TextField>
             </Grid>
+
+            {!isNew && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  select
+                  label="ステータス"
+                  value={formData.status}
+                  onChange={handleChange('status')}
+                  required
+                >
+                  <MenuItem value="active">有効</MenuItem>
+                  <MenuItem value="inactive">無効</MenuItem>
+                  <MenuItem value="withdrawn">退会済み</MenuItem>
+                </TextField>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
 
@@ -117,7 +139,7 @@ const UserForm = ({ user, open, onClose, onSubmit }) => {
             color="primary"
             disabled={loading}
           >
-            {loading ? '更新中...' : '更新'}
+            {loading ? (isNew ? '作成中...' : '更新中...') : (isNew ? '作成' : '更新')}
           </Button>
         </DialogActions>
       </form>

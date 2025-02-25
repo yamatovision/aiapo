@@ -16,6 +16,7 @@ import EmailLogs from './pages/Email/EmailLogs';
 import UserList from './pages/Users/UserList';
 import LoginPage from './pages/Auth/LoginPage';
 import { AuthProvider } from './auth/AuthProvider';
+
 import { useAuth } from './auth/useAuth';
 import SuperAdminRoute from './auth/SuperAdminRoute';
 
