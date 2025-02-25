@@ -156,31 +156,40 @@ class AuthService {
   }
 
   // 新規追加: ユーザー作成メソッド
-  async createUser(userData, createdBy) {
-    console.log('📝 新規ユーザー作成開始:', { email: userData.email });
-    try {
-      // 一時パスワードの生成
+  // 新規追加: ユーザー作成メソッド
+async createUser(userData, createdBy) {
+  console.log('📝 新規ユーザー作成開始:', { email: userData.email });
+  try {
+    let passwordToUse;
+    
+    if (userData.password) {
+      // フォームから送信されたパスワードがある場合はそれを使用
+      passwordToUse = await bcrypt.hash(userData.password, 8);
+    } else {
+      // パスワードが提供されていない場合は一時パスワードを生成
       const temporaryPassword = this.generateTemporaryPassword();
-      
-      const newUser = await User.createNewUser({
-        ...userData,
-        password: temporaryPassword
-      }, createdBy);
-
-      console.log('✅ ユーザー作成成功:', {
-        email: newUser.email,
-        clientId: newUser.clientId
-      });
-
-      return {
-        user: newUser,
-        temporaryPassword
-      };
-    } catch (error) {
-      console.error('❌ ユーザー作成エラー:', error);
-      throw error;
+      passwordToUse = await bcrypt.hash(temporaryPassword, 8);
     }
+
+    const newUser = await User.createNewUser({
+      ...userData,
+      password: passwordToUse
+    }, createdBy);
+
+    console.log('✅ ユーザー作成成功:', {
+      email: newUser.email,
+      clientId: newUser.clientId
+    });
+
+    return {
+      user: newUser,
+      temporaryPassword: userData.password ? undefined : temporaryPassword // パスワードが提供された場合は一時パスワードを返さない
+    };
+  } catch (error) {
+    console.error('❌ ユーザー作成エラー:', error);
+    throw error;
   }
+}
 
   // 新規追加: ブルーランプ同期メソッド
   async syncBluelampUser(userData) {

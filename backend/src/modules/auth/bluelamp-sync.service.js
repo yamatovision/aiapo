@@ -22,7 +22,7 @@ class BluelampSyncService {
         { fullDocument: 'updateLookup' }
       );
 
-      //変更検知のリスナー設定
+      // 変更検知のリスナー設定
       this.changeStream.on('change', async (change) => {
         try {
           await this.handleUserChange(change);
@@ -66,7 +66,8 @@ class BluelampSyncService {
 
     console.log('📝 ユーザー同期処理開始:', {
       email: bluelampUser.email,
-      userRank: bluelampUser.userRank
+      userRank: bluelampUser.userRank,
+      name: bluelampUser.name
     });
 
     try {
@@ -78,15 +79,20 @@ class BluelampSyncService {
 
       const userData = {
         email: bluelampUser.email,
+        name: bluelampUser.name || bluelampUser.email.split('@')[0],
+        password: bluelampUser.password, // ハッシュ化されたパスワードをそのまま同期
         userRank: bluelampUser.userRank,
         clientId: clientId,
-        // その他必要なデータマッピング
+        role: bluelampUser.userRank === '管理者' ? 'superadmin' : 'admin',
+        status: bluelampUser.userRank === '退会者' ? 'withdrawn' : 'active',
+        lastLogin: bluelampUser.lastLogin
       };
 
       const user = await authService.syncBluelampUser(userData);
       
       console.log('✅ ユーザー同期完了:', {
         email: user.email,
+        name: user.name,
         clientId: user.clientId,
         role: user.role,
         status: user.status
@@ -106,13 +112,16 @@ class BluelampSyncService {
       // ユーザーを無効化（完全削除ではなく）
       const user = await authService.updateUser(userId, {
         status: 'withdrawn',
-        role: 'none'
+        role: 'none',
+        userRank: '退会者',
+        updatedAt: new Date()
       });
 
       if (user) {
         console.log('✅ ユーザー無効化完了:', {
           email: user.email,
-          status: user.status
+          status: user.status,
+          role: user.role
         });
       }
     } catch (error) {
@@ -120,11 +129,24 @@ class BluelampSyncService {
     }
   }
 
+  // ユーザーデータの同期状態を確認
+  async validateUserSync(bluelampUser, aiApoUser) {
+    if (!aiApoUser) return false;
+
+    return (
+      bluelampUser.email === aiApoUser.email &&
+      bluelampUser.userRank === aiApoUser.userRank &&
+      bluelampUser.password === aiApoUser.password &&
+      (bluelampUser.name || bluelampUser.email.split('@')[0]) === aiApoUser.name
+    );
+  }
+
   // 同期状態チェック
   async healthCheck() {
     return {
       isConnected: this.isConnected,
-      lastSyncTime: new Date()
+      lastSyncTime: new Date(),
+      status: this.isConnected ? 'active' : 'inactive'
     };
   }
 
