@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authService } from './auth.service.js';
-import { authMiddleware, superadminMiddleware } from './auth.middleware.js';
+import { authMiddleware, superadminMiddleware, adminMiddleware } from './auth.middleware.js';
+import { authController } from './auth.controller.js';  // 追加
 
 const router = Router();
 
@@ -26,6 +27,8 @@ router.post('/login', async (req, res) => {
     });
   }
 });
+router.post('/users', [authMiddleware, adminMiddleware], authController.createUser);
+
 
 // 現在のユーザー情報を取得
 router.get('/me', authMiddleware, async (req, res) => {
@@ -86,8 +89,24 @@ router.post('/verify-token', async (req, res) => {
 // ユーザー一覧取得（スーパー管理者専用）
 router.get('/users', [authMiddleware, superadminMiddleware], async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, role } = req.query;
-    const result = await authService.getUsers({ page, limit, search, status, role });
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      status, 
+      role,
+      clientId  // 追加
+    } = req.query;
+
+    const result = await authService.getUsers({ 
+      page, 
+      limit, 
+      search, 
+      status, 
+      role,
+      clientId  // 追加
+    });
+
     res.json({
       success: true,
       data: result
@@ -101,6 +120,27 @@ router.get('/users', [authMiddleware, superadminMiddleware], async (req, res) =>
   }
 });
 
+// クライアントID検証エンドポイント（新規追加）
+router.post('/validate-client-id', [authMiddleware, adminMiddleware], async (req, res) => {
+  try {
+    const { clientId } = req.body;
+    const isValid = await authService.validateClientId(clientId);
+    
+    res.json({
+      success: true,
+      data: {
+        isValid,
+        message: isValid ? 'クライアントIDは有効です' : '無効なクライアントIDです'
+      }
+    });
+  } catch (error) {
+    console.error('クライアントID検証エラー:', error);
+    res.status(500).json({
+      success: false,
+      message: 'クライアントIDの検証中にエラーが発生しました'
+    });
+  }
+});
 // ユーザー詳細取得（スーパー管理者専用）
 router.get('/users/:id', [authMiddleware, superadminMiddleware], async (req, res) => {
   try {

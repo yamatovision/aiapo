@@ -380,6 +380,18 @@ export const authAPI = {
     return fetchAPI(`/api/auth/users${queryString ? `?${queryString}` : ''}`);
   },
 
+  createUser: (userData) => 
+    fetchAPI('/api/auth/users', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    }),
+
+  // クライアントID検証
+  validateClientId: (clientId) =>
+    fetchAPI('/api/auth/validate-client-id', {
+      method: 'POST',
+      body: JSON.stringify({ clientId })
+    }),
   // ユーザー詳細取得
   getUserById: (id) => 
     fetchAPI(`/api/auth/users/${id}`),

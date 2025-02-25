@@ -147,55 +147,47 @@ export class AuthController {
 
 
   // ユーザー一覧取得
-  getUsers = async (req, res) => {
-    try {
-      const { page = 1, limit = 10, search, status, role } = req.query;
-      const query = {};
+  // getUsersメソッドの更新版
+getUsers = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      status, 
+      role, 
+      clientId  // 新しいフィルターパラメータ
+    } = req.query;
 
-      // 検索条件の構築
-      if (search) {
-        query.email = { $regex: search, $options: 'i' };
-      }
-      if (status) {
-        query.status = status;
-      }
-      if (role) {
-        query.role = role;
-      }
+    // authServiceの拡張されたgetUsersメソッドを使用
+    const result = await authService.getUsers({
+      page,
+      limit,
+      search,
+      status,
+      role,
+      clientId  // クライアントIDによるフィルタリングを追加
+    });
 
-      const users = await User
-        .find(query)
-        .select('-password')
-        .limit(limit * 1)
-        .skip((page - 1) * limit)
-        .sort({ createdAt: -1 });
+    console.log('✅ ユーザー一覧取得成功:', {
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      userCount: result.users.length
+    });
 
-      const total = await User.countDocuments(query);
-
-      console.log('✅ ユーザー一覧取得成功:', {
-        total,
-        page,
-        limit,
-        userCount: users.length
-      });
-
-      res.json({
-        success: true,
-        data: {
-          users,
-          total,
-          page: Number(page),
-          pages: Math.ceil(total / limit)
-        }
-      });
-    } catch (error) {
-      console.error('❌ ユーザー一覧取得エラー:', error);
-      res.status(500).json({
-        success: false,
-        message: 'ユーザー一覧の取得中にエラーが発生しました'
-      });
-    }
-  };
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('❌ ユーザー一覧取得エラー:', error);
+    res.status(500).json({
+      success: false,
+      message: 'ユーザー一覧の取得中にエラーが発生しました'
+    });
+  }
+};
 
   // ユーザー詳細取得
   getUserById = async (req, res) => {
@@ -267,6 +259,62 @@ export class AuthController {
       });
     }
   };
+
+
+
+// auth.controller.js内に追加
+
+createUser = async (req, res) => {
+  console.log('👤 新規ユーザー作成リクエスト受信');
+  
+  try {
+    const { email, role, clientId } = req.body;
+
+    // 基本バリデーション
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'メールアドレスは必須です'
+      });
+    }
+
+    // 既存ユーザーチェック
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: '既に登録されているメールアドレスです'
+      });
+    }
+
+    // ユーザー作成
+    const { user, temporaryPassword } = await authService.createUser(
+      { email, role, clientId },
+      req.user // 作成者情報
+    );
+
+    console.log('✅ ユーザー作成完了:', { 
+      email: user.email,
+      clientId: user.clientId 
+    });
+
+    res.json({
+      success: true,
+      message: 'ユーザーを作成しました',
+      data: {
+        user: user.toSafeObject(),
+        temporaryPassword // 本番環境ではメール送信に使用
+      }
+    });
+  } catch (error) {
+    console.error('❌ ユーザー作成エラー:', error);
+    res.status(500).json({
+      success: false,
+      message: 'ユーザーの作成中にエラーが発生しました'
+    });
+  }
+};
+
 
   // ユーザー権限変更
   updateUserRole = async (req, res) => {
